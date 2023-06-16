@@ -1,0 +1,213 @@
+---
+title: "Modeling Japan's Employment-Population Ratio"
+subtitle: "Econ 144 - Project 1"
+author: "Jacob Titcomb"
+date: "Spring 2023"
+output:
+  pdf_document:
+    toc: TRUE
+    toc_depth: 3
+---
+\
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE,
+                      out.width = "75%", fig.align = "center")
+```
+
+```{r}
+source("econ144_proj_1_source.R")
+```
+
+\pagebreak
+
+# I. Introduction
+
+Our project attempts to model and forecast the employment to population ratio of Japan. The employment-population ratio (EPOP) is a vital macroeconomic index for understanding the labor economy for a country. Calculated simply as the percentage of persons age 15+ with jobs ($EPOP=\frac{\#\phantom{.}people\phantom{.}employed}{population}$), the EPOP gives insight into the health of a labor market and tracks economic growth. Compared to other indices like unemployment rate and labor force participation rate, EPOP does not exclude individuals not in the labor market, but rather incorporates all adults indiscriminately. Some variants of this statistic consider individuals ages 15 to 25, 15 to 64, or other age ranges ([Donovan](https://sgp.fas.org/crs/misc/R44055.pdf)), but we elected to use the standard 15 and older due to the country of focus.
+
+We selected Japan as the country of interest because of its unique economic trajectory over the past five decades as well as its low birth rate. A post-World War II Japan saw decades of economic growth as it industrialized and developed until around the 1970s and 1980s ([Berkeley Economic Review](https://econreview.berkeley.edu/the-japanese-economic-miracle/)), with one of the main contributing factors being the quality and quantity of the Japanese labor force ([Yamamura](https://www.nber.org/system/files/chapters/c9921/c9921.pdf)). Interestingly, after its massive economic expansion -- dubbed the Japanese Economic Miracle -- the economy faced (and continues to face) periods of low and negative inflation. We might expect those trends to influence the Japanese labor market. Additionally, Japan is known to have a low birth rate ([Matsuyama](https://www.bloomberg.com/news/articles/2023-02-28/japan-s-birth-rate-decline-accelerates-to-hit-a-record-low#xj4y7vzkg)); combined with the increasing cost of living longer, the Japanese labor economy has people of retirement age continuing to participate in or even rejoining the workforce ([Siripala](https://thediplomat.com/2023/01/surviving-old-age-is-getting-harder-in-japan/)). That trend informed our decision to keep the EPOP ages of interest broad at 15 and older.
+
+The EPOP data has quarterly observations from 1975 Q1 to 2022 Q4. The data was sourced from the [International Labour Organization](https://www.ilo.org/shinyapps/bulkexplorer18/?lang=en&segment=indicator&id=EMP_DWAP_SEX_AGE_RT_A&ref_area=JPN), an organization within the United Nations. Lastly, the units for the index are in percent. However, we transformed the data with a Box-Cox transformation using $\lambda=-0.8999268$, found using Guerrero's method.
+
+
+\pagebreak
+
+# II. Results
+
+## 1. Modeling and Forecasting Trend
+
+### (a) Time Series Plot
+
+The following is a plot of the employment-to-population ratio for Japan from 1975 Q1 to 2022 Q4. The dashed line indicates the mean percentage for the time series. Note that the employment-population ratio was transformed with a Box-Cox transformation.
+
+```{r}
+plot1
+```
+
+### (b) Assessing Stationarity
+
+From the plot in (a), we see that the data does not have a constant mean, i.e. the data does not continuously return to the dashed line indicating the average. Thus the first condition for covariance stationarity is violated, so the data is not stationary.
+
+### (c) ACF and PACF Plots
+
+In the following plots, we have the ACF and PACF of the employment-to-population ratio on the left and right, respectively. The ACF shows strong correlation with recent quarters and noticeably higher correlation with lags of every four quarters, indicating a strong seasonal component to the data. In particular, the 4-quarter lag has a covariance of almost 1. The PACF shows significant correlations with the most recent six quarters, in particular with one quarter of lag, four quarters of lag, and five quarters of lag.
+
+```{r}
+plot2 + plot3
+```
+
+### (d) Rudimentary Model Fitting
+
+Initially, we fitted a linear model to the time series. The model took the following form:
+\begin{align*}
+\widehat{EPOP}_t &= 1.084 - (1.042\times 10^{-5}) t \\
+(se) \phantom{-}&\phantom{-}(1.12E-4)\phantom{-}(8.72E-7)
+\end{align*}
+
+We note that both the intercept and coefficient are significant at the 0.1\% level. Next for the non-linear model, we elected to model with a cubic polynomial:
+
+\begin{align*}
+\widehat{EPOP}_t &= 1.082 + (9.642\times 10^{-5}) t - (1.160\times 10^{-6}) t^2 + (3.535\times 10^{-9}) t^3 \\
+(se) \phantom{-}&\phantom{-}(2.55E-4)\phantom{-}(8.60E-6)\phantom{--}(8.28E-8)\phantom{---}(2.37E-10)
+\end{align*}
+
+
+```{r}
+cat("~~~ Linear Model ~~~\n")
+summary(lin_model)[c("call", "coefficients")] # linear model
+cat("\n~~~ Cubic Model ~~~\n")
+summary(cubic_model)[c("call", "coefficients")] # cubic model
+```
+
+And in the following window we have the plotted time series with the two fitted models. From initial impressions, the cubic model seems to capture much more of the trend in the data than the linear model.
+
+```{r, out.width="100%"}
+plot4 + plot5
+```
+
+### (e) Residual Plots
+
+For both linear and cubic models, we plotted the residuals against fitted values plots, with the linear model on the left and non-linear on the right. There are clear patterns to both residual plots: for the linear plot, the residuals seem to have the trend of a 7-degree polynomial or something similar, certainly not the uniform randomness one would hope for in a residual plot for a line. As for the cubic model, there is a more general quadratic trend to the residuals, again indicating that the cubic model might not have been ideal to model the data. In both plots -- especially the second one -- the existence of clear patterns in the residuals is also indicative of cycles to the data.
+
+```{r}
+plot6 + plot7
+```
+
+### (f) Residual Distributions
+
+First we will discuss the residual histogram for the linear model. The residuals seem to be bimodal and asymmetric, with a slight right skew. The residual histogram for the cubic model exhibits slightly more normality than that of the linear residuals. The cubic model has residuals that are unimodal and asymmetric, with a slight left skew.
+
+```{r}
+plot8 + plot9
+```
+
+### (g) Model Diagnostic Statistics
+
+First and foremost, in tests of overall significance, both models have extremely high $f$-statistic values: 142.8 and 196.3 for linear and cubic, respectively, which both have p-values of approximately 0. Thus both models have at least one non-trivial coefficient. The linear model parameter estimates are all statistically significant, with the intercept and coefficient having respective $t$-values of 9708.81 and -11.95, respectively. Similarly, the parameter estimates for the cubic model are significant, with respective $t$-values of 4248.67, 11.21, -14.01, and 14.95, for the intercept and coefficients. For the above $t$-values for intercepts and coefficients, they all have a $p$-value of approximately 0, so they are all likely non-zero, individually.
+
+Then turning to model fit, the linear model has an adjusted $R^2$ of 0.4261 while the cubic model has a significantly higher adjusted $R^2$ of 0.7541. Similarly the linear trend model has a mean squared error of $4.437186\times10^{-7}$ and the cubic model has an MSE of $1.880928\times10^{-7}$. The cubic model's higher $\bar{R}^2$ and lower MSE both indicate that the cubic model has a better fit.
+
+```{r}
+model_statistics(lin_model) # linear model diagnostic statistics
+model_statistics(cubic_model) # cubic model diagnostic statistics
+```
+
+### (h) Model Selection Using AIC & BIC
+
+The non-linear model has an AIC and BIC of -2418.503 and	-2402.216, respectively. In comparison, the linear model has an AIC of -2257.718	 and BIC 0f -2247.946, both of which are greater that those of the non-linear model. Since the cubic model has a lower AIC and BIC, we select it as the model we will use going forward in the analysis.
+
+```{r}
+kable(aic_bic)
+
+```
+
+### (i) Forecast
+
+Using the cubic trend model, we performed a 20-steps ahead forecast (5 years). The forecast is visible in the plot below: the prediction is the blue curve, and the dashed grey curves above and below constitute the 95\% prediction interval.
+
+```{r}
+plot10
+
+```
+
+\pagebreak
+
+## 2. Trend and Seasonal Adjustments
+
+### (a) Manual Additive Decomposition
+
+For our additive decomposition of the series, we first subtracted the fitted trend values from the actual time series values. Then we regressed the detrended series on Q2, Q3, and Q4 to get the seasonal components (Q1 was omitted due to collinearity; as the baseline in the regression the effect is 0), then we subtracted those for each respective quarter, producing the residuals. The resulting residuals are seen in the first plot below, with the dotted line delineating 0. The strong pattern in the residual plot indicates cyclic behavior.
+
+For the AIC, we still see some high correlation with lagged quarters, though the effect decreases much more rapidly than in the non-adjusted AIC seen earlier. Again, the clear pattern in the data shows evidence of strong cyclic behavior. As for the PACF, we see values that are much less extreme than earlier, showing significant correlation only up to the 5-quarter lag.
+
+```{r}
+plot11 # additive adjustment residuals
+plot12 + plot13 # additive ACF, PACF
+```
+
+### (b) Manual Multiplicative Decomposition
+
+For our multiplicative decomposition of the series, we first divided the actual time series values by the fitted trend values. Then we regressed the logarithm of the detrended series on Q2, Q3, and Q4 to get the seasonal components; again Q1 was omitted, having a baseline value of 0. With to adjust the series, we divided the detrended series (not log-transformed) by the exponential of the respective estimated coefficient parameters. For example, since Q1 was the baseline and had a "coefficient" of 0, we divided Q1 by $e^0=1$. The resulting residuals are seen in the first plot below, with the dotted line delineating 1. We note that this graph is nearly identical to the residual plot from part (a), with the only major difference being the y-axis scale. To that effect, the strong pattern in the residual plot indicates cyclic behavior.
+
+We also observe that the graphs for the AIC and BIC are nearly identical to those from (a) as well; looking through our source code will confirm that the plots are indeed for the multiplicative seasonal adjustment.
+
+Like in (a), for the AIC, we still see some high correlation with lagged quarters, though the effect decreases much more rapidly than in the non-adjusted AIC. Again, the clear pattern in the data shows evidence of strong cyclic behavior. As for the PACF, we see values that are much less extreme than earlier, showing significant correlation only up to the 5-quarter lag.
+
+```{r}
+plot14 # multiplicative adjusted residuals
+plot15 + plot16 # multiplicative ACF, PACF
+```
+
+### (c) Comparing Our Manual Decompositions
+
+*Very* close inspection reveals that the ACF and PACF of the additive decomposition have correlations that are *slightly* higher (on the scale of -3 and -4 orders of magnitude). As the objective of detrending and seasonally adjusting is to minimize correlation with past observations, the "better" decomposition is the one which minimizes the ACF and PACF plots, with the goal of getting all lagged correlations to be not statistically significant. With that criteria in mind, the better decomposition is the multiplicative decomposition, though not by much. As the above residual, ACF, and PACF plots have illustrated, there is almost no difference between the two, based on the method that we used to seasonally adjust.
+
+### (d) Assessing Cycles in Random Component
+
+Based on our decompositions, we already observed that the random components of the decompositions appear to be almost identical. The ACF and PACF plots further support that observation. Thus we expect the models used to describe the cycles to be very similar as well, with the main differences being that one is essentially a scaled and translated version of the other.
+
+\pagebreak
+
+# III. Conclusion and Future Work
+
+Our final model incorporated a cubic trend and quarterly additive seasonality components. The forecast performed in (II.1.i) predicted a continual upward trend of Japan's employment-population ratio in the period 2023 Q1 to 2027 Q4. At each step of the process, our estimated parameters were statistically significant, and the model itself was statistically significant overall. Adjusting for trend and seasonality still showed much pattern in the residuals, indicating strong evidence of cyclic behavior and shortcomings of the basic non-linear model we used to approximate the trend. Given our simple tools and methods, our attempt at manually modeling and forecasting Japan's employment-to-population ratio was relatively successful.
+
+Possible corrections that could be made include transforming the data with a method besides (or in addition to) the Box-Cox transformation performed at the beginning, such as using the difference between quarters or the log-difference (for percent change). For general decomposition, future work with more complicated (algorithmic) models could use a Holt-Winters model, an STL decomposition, an ETS decomposition, or other methods for higher accuracy. Of course, using more complicated models with more parameters has the trade off of higher uncertainty when it comes to forecasting.
+
+Future work in this area of study would be beneficial, since forecasts for Japan's labor market could prompt systemic changes to its economy at large, as it copes with an aging population.
+
+\pagebreak
+
+# IV. References
+
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+*Berkeley Economic Review*. "The Japanese Economic Miracle." January 26, 2023. https://econreview.berkeley.edu/the-japanese-economic-miracle/.
+
+Diebold, F.X. (2017), *Forecasting*, Department of Economics, University of Pennsylvania, http://www.ssc.upenn.edu/~fdiebold/Textbooks.html.
+
+Donovan, Sarah A. "An Overview of the Employment-Population Ratio." *Congressional Research Service*, May 27, 2015. https://sgp.fas.org/crs/misc/R44055.pdf.
+
+Hyndman Rob J., and George Athanasopoulos. *Forecasting: Principles and Practice, 3rd Edition*. Online: OTexts, 2021. https://otexts.com/fpp3/.
+
+*International Labour Organization*, "ILOSTAT Explorer." *United Nations*, 2023. https://www.ilo.org/shinyapps/bulkexplorer18/?lang=en&segment=indicator&id=EMP_DWAP_SEX_AGE_RT_A&ref_area=JPN.
+
+Ito, Takatoshi. "Great Inflation and Central Bank Independence in Japan." *National Bureau of Economic Research*, February 2010. https://www.nber.org/papers/w15726#:~:text=Japan%20suffered%20a%20very%20 high,the%201973%2D74%20high%20inflation..
+
+Matsuyama, Kanoko. "Japan’s Birth Rate Declines Again, Plunging to a Record Low." *Bloomberg*, February 28, 2023. https://www.bloomberg.com/news/articles/2023-02-28/japan-s-birth-rate-decline-accelerates-to-hit-a-record-low#xj4y7vzkg.
+
+Odagiri, Hiroyuki, and Akira Goto. "The Post-War Technological Progress and Government Policies." *Oxford Academic*, September 1996. https://academic.oup.com/book/27388/chapter/197175945?login=true.
+
+Rich, Motoko, and Hikari Hida. "As Asian Societies Age, ‘Retirement’ Just Means More Work." *New York Times*, Janurary 9, 2023. https://www.nytimes.com/2023/01/07/world/asia/japan-workers-retirement.html.
+
+Siripala, Thisanka. "Surviving Old Age Is Getting Harder in Japan." *The Diplomat*, January 19, 2023. https://thediplomat.com/2023/01/surviving-old-age-is-getting-harder-in-japan/.
+
+Yamamura, Kozo. "A Retrospect and Prospect on the Postwar Japanese Economy." *National Bureau of Economic Research*, April 1976. https://www.nber.org/system/files/chapters/c9921/c9921.pdf.
+
+
+
+
+

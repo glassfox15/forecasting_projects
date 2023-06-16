@@ -1,0 +1,536 @@
+---
+title: "Modeling Florida and Illinois Exports"
+subtitle: "Econ 144 - Project 2"
+author: "Jacob Titcomb"
+date: "Spring 2023"
+output:
+  pdf_document:
+    toc: TRUE
+    toc_depth: 2
+---
+\
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, out.width = "65%", message = FALSE,
+                      fig.align = "center", warning = FALSE)
+```
+
+```{r}
+source("econ144_proj2_source.R")
+```
+
+\pagebreak
+
+# I. Introduction
+
+Our project attempts to model and forecast the exports of goods for Florida and Illinois. More specifically, according to the [St. Louis Federal Reserve](https://fred.stlouisfed.org/series/EXPTOTFL), these statistics measure the "[e]xports of manufactured and non-manufactured commodities based on origin of movement." Measuring exports for an economy gives insight into its health and productivity, especially since foreign trade is taken into direct consideration when calculating gross domestic product (GDP). Modeling and predicting export levels of a state has many benefits, such as informing state and federal policy, and assessing the economic climate of an area for the decisions of both domestic and foreign firms. In particular, forecasting the exports for Illinois and Florida would provide insight into the future economies of both states, as well as the economy of the United States at large.
+
+We selected Florida and Illinois as the two American states of interest since they are among the American states with the highest GDPs in 2022, ranking 4th and 5th, respectively ([Bureau of Economic Analysis](https://www.bea.gov/sites/default/files/2023-03/stgdppi4q22-a2022.pdf)). As far as exports, they both have a similar level of exports, with Illinois being the 5th largest exporter out of all the states and Florida being the 6th.
+
+The largest proportion of Florida exports from March 2023 were in a variety of industries: aircraft parts, medicaments, smartphones, and integrated circuits ([OEC](https://oec.world/en/profile/subnational_usa_state/fl)). The most common destinations for Florida's exports were Canada, Brazil, Mexico, and the United Kingdom ([OEC](https://oec.world/en/profile/subnational_usa_state/fl)).
+
+Similarly for Illinois, their most common exports from March 2023 were in varied industries: petroleum, medicaments, antisera (blood serum containing antibodies), and soybean ([OEC](https://oec.world/en/profile/subnational_usa_state/il)).  Illinois' exports were most often sent to Canada, Mexico, China, and Germany ([OEC](https://oec.world/en/profile/subnational_usa_state/il)).
+
+The export statistics for Florida and Illinois cover the time period from August 1995 to March 2023, recorded monthly. The data was sourced from the [Federal Reserve Bank of St. Louis](https://fred.stlouisfed.org/), and we performed an initial transformation of taking the logarithm, hopefully reducing variation in amplitude for both series. Thus the units for both time series is log-millions of American dollars.
+
+
+\pagebreak
+
+# II. Results
+
+## (a) Time Series Plots
+
+### Florida
+
+In the time plot below, we see a general upward trend to the data, with a possible seasonal component, though difficult to verify without further analysis. In addition to trend, the time series shows some stochastic cyclic behavior. With respect to ARMA models, the time series exhibits traits of an AR process, like possible white noise behavior and strong persistence; we will study this possibility later.
+
+```{r}
+plot1
+```
+
+As far as the ACF and PACF for the data, we see gradual decay in the ACF with very slight spikes at every 12 lags, indicating a both seasonal and non-seasonal AR process. We note that the slow decay in the ACF confirms the strong persistence seen in the time plot.
+
+For the PACF, we see significant spikes at lags 1, 2, and 13, challenging the seasonal AR theory. While one might initially guess an AR(13) process, we suspect that differencing (possibly of the first order) will likely be incorporated if we opt for an ARIMA model; thus any decision at this point would be hasty.
+
+```{r}
+plot2
+```
+
+
+### Illinois
+
+The time plot for Illinois exports shows an increasing trend, with some possible seasonality (again, difficult to say definitively). Like Florida, Illinois shows some stochastic cyclic behavior. Strong persistence in the data indicates an underlying AR process, though more analysis must be done.
+
+```{r}
+plot3
+```
+
+The ACF and PACF for Illinois appear to be very similar to Florida's. There appears to be decay in the ACF and slight scalloping every 12 lags in the ACF, indicating both an AR and seasonal AR process. The PACF has significant lags at 1 and 13; other spikes appear significant but are still close to zero, so they are not as conclusive and 1 and 13. The spikes at 1 and 13 indicate a possible AR(13) process at this point, but it is likely that including a differencing component would be beneficial.
+
+```{r}
+plot4
+```
+
+\pagebreak
+
+### Florida and Illinois Together
+
+For completeness, we will graphed both time series on the same plot below. We see that they tend to follow each other fairly well.
+
+```{r}
+plot5
+```
+
+
+\pagebreak
+
+## (b) STL Decomposition
+
+### Florida
+
+We observe the positive trend component to the data, agreeing with our description of the trend from earlier. The seasonal component shows strong seasonality which changes slightly over time, decreasing in amplitude. There does seem to be a slight pattern to the remainder component, indicating possible cycles. There are clear deviations in the residuals around 2008 and 2021, understandable given the economic climates at the time.
+
+```{r}
+plot6
+```
+
+### Illinois
+
+The behavior for Illinois appears to be very similar to Florida, with an upward trend, a seasonal component with a decreasing magnitude, and some slight patterns in the remainder, indicating cycles. The periods of 2008 and 2021 also show large remainder components as well.
+
+```{r}
+plot7
+```
+
+\pagebreak
+
+## (c) Trend, Seasonality, and Cycles
+
+### Florida
+
+We propose the following model:
+\begin{align*}
+Y_t&=T^{Loess}_t+\sum^{12}_{i=1}\delta_iM_{i,t} + R_t &&\text{Trend and Seasonality} \\
+R_t&=\phi R_{t-1}+\theta\varepsilon_{t-1}+\varepsilon_t &&\text{Cycles}
+\end{align*}
+
+The first term ($T^{Loess}_t$) is the Loess fitted model for trend, found using an STL decomposition. The second component of the model captures seasonality using 12 seasonal dummy variables, one for each month. The parameters for the seasonality were determined also with in the STL decomposition. We note that we designed the seasonality to be fixed for the entirety of the data, i.e. the window for the seasonality was set to `"periodic"` so the values for each month do not fluctuate over time. Lastly, we selected an ARMA($1,1$) model for the cycles, represented with the equation with $R_t$. We chose the order of AR(1) and MA(1) using the `auto.arima()` function, which we also used to determine the estimates for $\phi$ and $\theta$.
+
+We are unable to extract the explicit parameters used for the Loess trend component, but we can extract the seasonality and cycle components. They are summarized in the following two tables:
+
+```{r}
+FL_seas_components_print
+FL_cycl_print
+```
+
+
+To illustrate the fit of the model, the following graph shows the original time series (black curve) and the model (blue curve).
+
+```{r}
+plot8
+```
+
+### Illinois
+
+We propose a similar model for Illinois:
+\begin{align*}
+Y_t&=T^{Loess}_t+\sum^{12}_{i=1}\delta_iM_{i,t} + R_t &&\text{Trend and Seasonality} \\
+R_t&=\phi R_{t-1}+\varepsilon_t &&\text{Cycles}
+\end{align*}
+
+Again, the trend and seasonality were determined using an STL decomposition, with seasonality being fixed for the entirety of the time series. The biggest difference is in the cycles: we decided to use an AR(1) model rather than ARMA model since `auto.arima()` determined a first-order AR process to be the most ideal. The explicit parameters for the seasonality and cycles are summarized in the following two tables:
+
+```{r}
+IL_seas_components_print
+IL_cycl_print
+```
+
+
+
+To illustrate the fit of the model, the following graph shows the original time series (black curve) and the model (red curve).
+
+```{r}
+plot9
+```
+
+\pagebreak
+
+## (d) Residual Plots
+
+### Florida
+
+In the below residual plot, we see fairly constant scattering, with two or so outliers very far from 0. The variance in the residuals seems to decrease a bit on the ends, which could indicate an issue with the model's design. There are no obvious patterns, so our model is relatively successful at capturing the general behavior of the time series.
+
+```{r}
+plot10
+```
+
+
+### Illinois
+
+The residual plot below looks very similar to that of Florida's, except Florida's has a slightly larger range on the $y$-axis. Again, the residuals show fairly constant scattering, with only one outlier being very far from 0. The variance in the residuals decreases towards the ends, indicating a possible error in the model; however, the lack of an obvious pattern indicates our model captured the general behavior of the time series.
+
+```{r}
+plot11
+```
+
+\pagebreak
+
+## (e) Residual ACF and PACF
+
+### Florida
+
+In the below ACF and PACF, we see close very few statistically significant spikes. We will verify with a statistical test in part (g) if the residuals follow a white noise process.
+
+```{r}
+plot12
+```
+
+
+### Illinois
+
+The ACF and PACF show very few statistically significant spikes. We suspect that a formal statistical test -- performed in part (g) -- will confirm that the spikes that appear to be significant are actually not significant.
+
+```{r}
+plot13
+```
+
+\pagebreak
+
+## (f) Cumulative Sum Plots
+
+### Florida
+
+In the CUSUM plot for Florida, we see very little divergence from 0. In fact, the cumulative sum stays well within the red bands, indicating that there are no structural breaks in the model.
+
+```{r}
+plot14
+```
+
+### Illinois
+
+In the CUSUM plot for Illinois, we again see very little divergence from 0. The cumulative sum stays well within the red bands, indicating that there are no structural breaks in the model.
+
+
+```{r}
+plot15
+```
+
+
+
+\pagebreak
+
+## (g) Model Diagnostic Statistics
+
+Before discussing diagnostics for the models, we note that we do not include the $F$ statistic (and thus no test of overall significance) and adjusted $R^2$ for our models. That is because the component for trend was calculated implicitly in an STL decomposition rather than explicitly in an `lm` object. Thus we are unable to extract the relevant details about the trend (e.g. degrees of freedom) and so both measures -- $F$ statistic and $\bar R^2$ -- cannot be calculated at this point.
+
+### Florida
+
+```{r}
+cat(sep = "", "MAPE: ", FL_MAPE,"\nRMSE: ", FL_RMSE,"\nME: ", FL_ME)
+FL_ljung
+```
+\
+
+The model for Florida has a MAPE of 0.464, which is below 50\%; while we would prefer a MAPE under 25\%, below 50\% is not terrible for a model. The model's RMSE is 0.0517 (in log-millions of dollars) -- fairly low compared to the scale of the time series (a range from about 7 to 9). It is worth noting that the mean error is 0.0001243, so it is close to but not exactly 0, meaning that our model slightly underestimates the data.
+
+To further assess model appropriateness, a Ljung-Box test using 12 lags was performed. The test had a $p$-value of 0.3568; so at the 0.05 significance level we fail to reject the null hypothesis, meaning the residuals follow a white noise process. Therefore our model successfully captured the serial correlation within the time series.
+
+
+
+
+### Illinois
+
+```{r}
+cat(sep = "", "MAPE: ", IL_MAPE,"\nRMSE: ", IL_RMSE,"\nME: ", IL_ME)
+IL_ljung
+```
+\
+
+The model for Illinois has a MAPE of 0.376, which is farther below 50\% than Florida's model; again, a MAPE below 50\% is not terrible for a model. The model's RMSE is 0.0430 (in log-millions of dollars) -- fairly low compared to the scale of the time series (a range from about 7 to 9). It is worth noting that the mean error is -0.000479. It is close enough to 0 that it may be rounding error, but if it is not, it indicates that our model slightly overestimates the data.
+
+To assess serial correlation, a Ljung-Box test using 12 lags was performed. The test had a $p$-value of 0.5143; so at the 0.05 significance level we fail to reject the null hypothesis, meaning the residuals follow a white noise process. Thus our model successfully captured the serial correlation within the time series.
+
+
+
+\pagebreak
+
+## (h) 12-step-ahead Forecast
+
+Since we used an ARMA model to model the remainder component of the STL decomposition, the residuals of the combined model will be the residuals from the ARMA model. Thus the widths of the prediction interval for the ARMA model will be the widths of the prediction interval for the combined model.
+
+The forecasts of the STL decompositions used the naïve forecasting method, and the ARMA components were forecasted normally.
+
+### Florida
+
+The below plot has the 12-step-ahead forecast with error bands, starting in April 2023 and ending in March 2024.
+
+```{r}
+plot16
+```
+
+### Illinois
+
+The below plot has the 12-step-ahead forecast with error bands, starting in April 2023 and ending in March 2024.
+
+```{r}
+plot17
+```
+
+\pagebreak
+
+## (i) Comparing to ARIMA Model
+
+### Florida
+
+```{r}
+plot18
+```
+
+Above, we have a 12-steps-ahead forecast for Florida using an ARIMA model. Compared to the forecast from earlier, the ARIMA forecast shows larger error bands and less volatility in the 12-month forecasted window.
+
+We used the `auto.arima()` function in R to estimate an ARIMA model. The summary of the model is in the code output below. The algorithm determined an ARIMA($2,1,1$) model with a seasonal AR(2) component ($s=12$), taking the following form:
+\begin{align*}
+\text{Trend and Cycles:}&&\phantom{--}(1+1.115L+0.360L^2)\phantom{.}(1-L)\phantom{.}y_t &= (1+0.768L)\phantom{.}\varepsilon_t \\
+\text{Seasonal:}&&\phantom{--}(1-0.369L^{12}-0.212L^{24})\phantom{.}y_t &= \varepsilon_t
+\end{align*}
+
+From the summary output below, we see the ARIMA model has a higher MAPE: $MAPE_{ARIMA}=0.6172$ compared to $MAPE_{T+S+C} = 0.4642$. Further inspection of the other performance metrics (e.g. ME and RMSE) reveals that the ARIMA model's metrics have larger magnitudes than the original model in general. Thus our original model (STL decomposition with an ARMA component) performs better than the ARIMA model.
+\
+```{r}
+FL_arima.summary
+```
+
+\pagebreak
+
+### Illinois
+
+```{r}
+plot19
+```
+
+Comparing the above forecast using an ARIMA model to the forecast from earlier, this forecast shows larger error bands and less volatility in the 12-month forecasted window.
+
+We used the `auto.arima()` function in R to estimate an ARIMA model. The summary of the model is in the code output below. The algorithm determined an ARIMA($2,1,0$) model with a seasonal AR(2) component ($s=12$), taking the following form:
+\begin{align*}
+\text{Trend and Cycles:}&&\phantom{--}(1+0.314L+0.108L^2)\phantom{.}(1-L)\phantom{.}y_t &= \varepsilon_t \\
+\text{Seasonal:}&&\phantom{--}(1-0.440L^{12}-0.246L^{24})\phantom{.}y_t &= \varepsilon_t
+\end{align*}
+
+From the summary output, we see the ARIMA model has a higher MAPE: $MAPE_{ARIMA}=0.5325$ compared to $MAPE_{T+S+C} = 0.3762$. Further inspection of the other performance metrics (e.g. ME and RMSE) reveals that the ARIMA model's metrics have larger magnitudes than the original model in general. Thus our original model (STL decomposition with an ARMA component) performs better than the ARIMA model.
+\
+```{r}
+IL_arima.summary
+```
+
+\pagebreak
+
+## (j) Combining forecasts
+
+### Florida
+
+```{r}
+cat(sep = '',"T+S+C model MAPE: ", FL_MAPE, '\n',
+    "ARIMA model MAPE: ", FL_arima_MAPE, "\n",
+    "Cmb'd model MAPE: ", FL_comb_MAPE)
+```
+
+We combined the two models (ARIMA model and STL decomposed with ARMA component model) by implementing a rudimentary weighting scheme with a linear regression. When comparing the three models, we observe that the original model (STL decomposed with ARMA component) still has the lowest MAPE. Notably, the combined model performs very similarly to the original model, far better than the ARIMA model.
+
+### Illinois
+
+```{r}
+cat(sep = '',"T+S+C model MAPE: ", IL_MAPE, '\n',
+    "ARIMA model MAPE: ", IL_arima_MAPE, "\n",
+    "Cmb'd model MAPE: ", IL_comb_MAPE)
+
+```
+
+Similar to Florida, the original model -- which incorporated an STL decomposition and an ARMA component -- had the lowest MAPE. Then the combined model had the second lowest, and the ARIMA model had the highest MAPE. Thus the original model performed the best.
+
+\pagebreak
+
+## (k) VAR model
+
+First, to make the data stationary, we took the first difference for both time series. We see in the cross correlation function below that the highest cross correlation is for contemporaneous observations. However, other lags appear to be significant too, especially spikes occurring on lags 12 and -12. 
+
+```{r}
+plot20
+```
+
+Next we will fit a VAR model to the differenced data. From using `VARselect()` to identify the order of a VAR model, the information criteria gave conflicting results. In this case, we will opt for the model with the lowest BIC: the model of order 4. The VAR model parameters can be seen in the table below; the first row is for the model with Florida exports as the endogenous variable, the second row has Illinois exports as the endogenous variable.
+
+With Florida as the endogenous variable, lags 1, 2, and 4 of Florida are all significant, the first two at the 0.001 level and lag 4 at the 0.05 level. Illinois lags 1, 2, and 3 are significant, at levels 0.01, 0.05, and 0.1, respectively.
+
+With Illinois as the endogenous variable, each lag of Illinois is significant at the 0.001 level. For Florida, only lag 3 is significant (at the 0.1 level).
+
+
+
+```{r}
+VAR_order_print
+VAR_coef_print
+```
+
+
+See the appendix for the full summary output of the VAR model.
+
+\pagebreak
+
+### VAR Model Analysis
+
+Below we see the VAR fitted model for Florida (the first pair of graphs) and Illinois (the second pair). Note that the data used for the VAR model was differenced, as are the fitted VAR model values. From the graphs, the VAR model does not seem to be entirely accurate, as the model has regions -- like after 2020 -- where the fitted values and original data diverge significantly. Thus we might not expect the VAR models to perform as well as our earlier models.
+
+
+```{r}
+plot21
+plot22
+```
+
+
+
+\pagebreak
+
+### ACF and PACF Analysis
+
+To further assess the VAR model, we will look at the ACF and PACF for both models.
+
+For Florida (the plots below), ACF and PACF show a spike at the 12th lag, indicating seasonality that was not captured. The ACF also shows a significant spike at 24, which might indicate a seasonal AR process in the remainder.
+
+```{r}
+plot23
+```
+
+
+As for Illinois, we see in the below ACF and PACF strong spikes at lag 12, and some other potentially signficant spikes at other lags. The spikes at lag 12 indicate seasonal behavior not captured by the model, suggesting a possible seasonal AR process in the remainder.
+
+
+```{r}
+plot24
+```
+
+\pagebreak
+
+
+## (l) IRF
+
+In the first pair of plots below, we have the impulse response functions for a one unit shock to Florida exports. We see an initial positive effect to both Florida and Illinois exports. After the initial positive start, the impulse response quickly drops past 0 after around one month, then stays near 0 for the future months. It is also worth noting that the magnitudes of both impulse response functions are both very small (around 0.05), indicating that relative to the scale of the data, a shock to Florida exports will have an effect that is not very large.
+
+```{r}
+plot25
+```
+
+
+Then for the next pair of plots, we have the impulse response functions for a one unit shock to Illinois exports. We see a fairly minimal effect to Florida exports, starting and staying near zero, and having fluctuations of a small magnitude. As for the effect on Illinois exports, the effect is similar to that of the shock to Florida's exports: initially positive, dropping below 0 after around one month, then increasing a bit until it stays near 0. Again, the scale of the effect of the shock is very small in comparison to the scale of the actual data.
+
+```{r}
+plot26
+```
+
+
+
+\pagebreak
+
+## (m) Granger causality
+
+In the first Granger causality test below, we test if Illinois exports "Granger cause" Florida exports. With a $p$-value of $0.0001006$, we reject the null hypothesis at the 0.001 significance level, meaning there is enough evidence to show that Illinois exports can help predict Florida exports.
+
+The second Granger causality test assesses Florida exports "causing" Illinois exports. With a $p$-value of $0.0923$, we fail to reject the null hypothesis at the 0.05 significance level. Thus there is not enough evidence of Florida exports "Granger causing" Illinois exports.
+
+
+```{r}
+cat("---------- IL causing FL ----------\n")
+il_cause_fl
+cat("\n\n---------- FL causing IL ----------\n")
+fl_cause_il
+
+```
+
+
+
+
+
+\pagebreak
+
+## (n) Forecasts Using VAR Model
+
+### Florida
+
+Below we have the forecast for Florida exports using the VAR model. Note that the forecast is not differenced, rather it is in the original units. Compared to earlier forecasts, this forecast shows the least volatility in the point forecast: a mostly flat point estimate behavior. However, this forecast has the widest error bands, with the width increasing more rapidly than the earlier forecasts. That is due to the accumulating uncertainty associated with forecasting in differenced rather than undifferenced data.
+
+```{r}
+plot27
+```
+
+
+### Illinois
+
+Below we have the forecast for Illinois exports using the VAR model. Again, we displayed our forecast in the undifferenced units. Like for Florida, the point estimates show less volatility compared to earlier forecasts, and the error bands are wider with increasing widths (for the same reason as for Florida's VAR forecast).
+
+```{r}
+plot28
+```
+
+
+
+
+\pagebreak
+
+# III. Conclusion and Future Work
+
+Our project consisted of building four models to forecast two different time series: a model incorporating trend, seasonality, and cycles; an ARIMA model; a combined model using the previous two, and a VAR model. Our two time series studied were monthly exports for Illinois and Florida, from August 1995 to March 2023. We initially transformed the data so the units were in log-millions of US dollars.
+
+The first model for both series was an STL decomposition to capture trend and seasonality, and an ARMA component to capture cycles. The forecast for the STL components used the naïve forecast method and the ARMA model was forcasted normally.
+
+The ARIMA model for Florida was an ARIMA(2,1,1) model with a seasonal AR(2) component ($s=12$). The model for Illinois was an ARIMA(2,1,0) model with a seasonal AR(2) component ($s=12$).
+
+The combined model used a linear regression to determine the weight allocations for combining the models in a weighted average scheme. For both Florida and Illinois, the original model performed the best out of the three, with the lowest MAPE. The ARIMA model had the highest MAPE and the combined model was in the middle.
+
+For our final model, we applied a first-order difference to the data and fitted a fourth order VAR model. Granger causality tests indicated that Illinois exports "cause" Florida exports but not vice versa.
+\
+
+There are a variety of corrections that could be made to improve our modelling process. From the start, we could have used a Box-Cox transformation of the data using a lambda found with Guerrero's Method, rather than the standard log-transformation. Doing so would further normalize the variance, making modeling easier. Our STL decomposition assumed unchanging seasonal effects, so a better STL decomposition using a moving seasonality window could increase the accuracy of the model. To make the combined model more dynamic, we could have used a changing (rather than fixed) weighting scheme to optimize our use of the first two models. Lastly, for our VAR model, we could have increased the order beyond 4, using a less strict information criterion than the BIC. Using more lags might have increased the accuracy of the model.
+\
+
+Future work in this area of study would be beneficial, since forecasts for Florida's and Illinois' exports could affect business and policy decisions in the long- and short-term. One could also gain further insight into the vitality of American exports at large.
+
+
+
+\pagebreak
+
+# IV. References
+
+\setlength{\parindent}{-0.2in}
+\setlength{\leftskip}{0.2in}
+\setlength{\parskip}{8pt}
+\noindent
+
+*Bureau of Economic Analysis*, "News Release: Gross Domestic Product by State and Personal Income by State,
+4th Quarter 2022 and Year 2022." *US Department of Commerce*, 2023. https://www.bea.gov/sites/default/files/2023-03/stgdppi4q22-a2022.pdf.
+
+Diebold, F.X. (2017), *Forecasting*, Department of Economics, University of Pennsylvania, http://www.ssc.upenn.edu/~fdiebold/Textbooks.html.
+
+*Federal Reserve Bank of St. Louis*, “Exports of Goods for Florida (EXPTOTFL).” *United States Federal Reserve System*, 2023. https://fred.stlouisfed.org/series/EXPTOTFL.
+
+*Federal Reserve Bank of St. Louis*, “Exports of Goods for Illinois (EXPTOTIL).” *United States Federal Reserve System*, 2023. https://fred.stlouisfed.org/series/EXPTOTIL.
+
+"Florida." *Forbes*, 2023. https://www.forbes.com/places/fl/?sh=86f7b0258bcd.
+
+Hyndman Rob J., and George Athanasopoulos. *Forecasting: Principles and Practice, 3rd Edition*. Online: OTexts, 2021. https://otexts.com/fpp3/.
+
+"Illinois." *Forbes*, 2023. https://www.forbes.com/places/il/?sh=744b452c1777.
+
+*Observatory of Economic Complexity (OEC)*, "Florida." *Datawheel*, 2023. https://oec.world/en/profile/subnational_usa_state/fl.
+
+*Observatory of Economic Complexity (OEC)*, "Illinois." *Datawheel*, 2023. https://oec.world/en/profile/subnational_usa_state/il.
+
+\pagebreak
+
+# V. Appendix
+
+Full summary output for the VAR model:
+\
+```{r, echo = TRUE}
+summary(VAR_model)
+```
+
+
