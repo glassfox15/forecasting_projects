@@ -31,9 +31,9 @@ In the descriptions below, I will go into more detail into the components of eac
 
 ## Project 3: Many (Many) Models
 
-**Description:** For the third project, I had free rein to use whatever models I wanted to forecast a time series. The data I chose was Supplemental Nutrition Assistance Program (SNAP) benefits recipients in California. (Note that in California the program is called CalFresh, and more generally, it is referred to as "Food Stamps.")
+**Description:** For the third project, I had free rein to use whatever models I wanted to forecast a time series. The data I chose was Supplemental Nutrition Assistance Program (SNAP) benefits recipients in California. (Note that in California the program is called "CalFresh," and more generally, it is referred to as "Food Stamps.")
 
-The data had a monthly frequency. And to compare my models, I performed a train-test split of the data and compared model accuracy based on a prediction of the last 5 years of the time series. I used two metrics for accuracy: mean absolute error (MAE) and root mean squared error (RMSE).
+The data had a monthly frequency. And to compare my models, I performed a train-test split of the data and compared model accuracy based on a prediction of the final 5 years of the time series. I used two metrics for accuracy: mean absolute error (MAE) and root mean squared error (RMSE).
 
 ### The Models
 * An STL decomposition with an ARMA component for cycles
