@@ -20,6 +20,8 @@ The data had a monthly frequency. And to compare my models, I performed a train-
   + The weighting scheme was determined with a linear regression
 * A GARCH model for conditional variance, with an ARMA mean model
 
+## Further Work
+
 Further work that I would have liked to have included would be a GARCH component for each model, not just with an ARMA model. I also would have liked to incorporate a temporal aggregation mdoel like THIEF or MAPA. Lastly, the inclusion of a state space model -- i.e. Kalman filtering -- would be another option to explore.
 
 As for the combination model, I could have used a time-variant aggregation technique (e.g. Kalman filtering), and that might have been more effective than the linear regression static weighting scheme. If I wanted to improve the linear model, I could have chosen an optimization method for feature selection (like a forward/backward regression or a best subsets regression) so as to use only the models that would be optimally relevant. I might try it out in future projects...
