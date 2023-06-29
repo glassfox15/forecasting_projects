@@ -8,7 +8,7 @@
 * There were three projects, each with increasing complexity. **Thus the third project is most representative of the skills I learned.**
 
 * Some examples of models we studied are the following:
-  + ARIMA, ETS, Prophet (developed by Facebook), Neural Network Autoregression, State Space Models (e.g. Kalman Filtering), Holt-Winters, GARCH (for conditional variance), VAR, Cointegration, Dynamic Harmonic Regression, STL decomposition, TBATS, model combinations
+  + ARIMA, ETS, Prophet (developed by Facebook), Neural Network Autoregression, State Space Models (e.g. Kalman Filtering), Holt-Winters, GARCH (for conditional variance), VAR, Cointegration, THIEF, MAPA, Dynamic Harmonic Regression, STL decomposition, TBATS, model combinations
   + Most (but not all) of the aforementioned models were used. The third project in particular incorporates most of these elements.
 
 
