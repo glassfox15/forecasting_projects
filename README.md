@@ -16,4 +16,4 @@
 
 * All work is my own (i.e. analyses, models, visualizations), and it was all done in R. I also found the data sets myself.
 
-Each folder has its own REAME, within which I go into more detail for the components of each respective project.
+Each folder has its own README, within which I go into more detail for the components of each respective project.
